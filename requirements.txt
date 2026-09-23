@@ -1,0 +1,67 @@
+# ms-duke-je-gocoll-agent-service - Pinned Dependencies
+# Python >= 3.13
+# GOCOLL JE Agent (port 8018)
+
+# ------ Microsoft Agent Framework ------------------------------
+# Only -core and -a2a, matching the other agent services. The `agent-framework`
+# meta package pulls agent-framework-core[all] (~30 provider sub-packages incl.
+# ag-ui, bedrock, anthropic, ollama), and agent-framework-ag-ui now requires
+# agent-framework-core>=1.13.0 + sse-starlette>=3.4.5, which makes the pins
+# below unresolvable. The `agent_framework` import namespace comes from -core.
+agent-framework-core==1.11.0
+agent-framework-a2a==1.0.0b260304
+
+# ------ Core ----------------------------------------------------
+pydantic==2.12.5
+pyyaml==6.0.3
+python-dotenv==1.2.2
+httpx==0.28.1
+
+# ------ Azure / OpenAI ------------------------------------------
+azure-identity==1.25.2
+openai==2.44.0
+
+# ------ Server --------------------------------------------------
+uvicorn==0.41.0
+fastapi==0.138.2
+starlette==1.3.1
+sse-starlette==3.3.2
+a2a-sdk[sql]==1.0.3
+
+# ------ Data / Excel / PDF ---------------------------------------
+openpyxl==3.1.5
+numpy==2.4.2
+PyMuPDF==1.27.1
+pillow
+pdf2image==1.17.0
+pdfplumber==0.11.9
+pdfminer.six==20251230
+pypdf
+
+# ------ Database ------------------------------------------------
+asyncpg==0.30.0
+
+# Azure Blob storage backend (Phase 2)
+azure-storage-blob>=12.20
+
+# Shared library - secret resolution + vendored assembly_gate / source_coordinator / vision.
+# Resolved from the finance-datalake-pypi-dev Artifactory index, same as the
+# other agent services - no longer a git branch pin.
+# For local dev: pip install -e ../ms-duke-je-common[agents,secrets,framework]
+# Floor is 0.3.8; requires a release that ships governance.document_trust
+# (validate_documents) and the GOCOLL LLM budget key.
+# `framework` (BaseAgentExecutor migration) pulls the executor deps -
+# llm/storage/auth/transport/tracing/redis/secrets. The pinned release must
+# ship the BaseAgentExecutor framework and expose the `framework` extra.
+ms-duke-je-common[agents,secrets,framework]==0.5.10
+
+azure-keyvault-secrets>=4.8
+
+# -- Observability (ACS RULE 35) ----------------------------------
+# OTel core (api/sdk 1.44.0), the Azure Monitor exporter (1.0.0b57), the openai-v2
+# GenAI instrumentor, and asgi/httpx instrumentation are pinned by
+# ms-duke-je-common[framework]. Exporter must be >=b57; b45 imported the removed
+# opentelemetry.sdk._logs.LogData against sdk 1.44.0 and silently fell back to the
+# console exporter (no telemetry reached App Insights). Only the asyncpg
+# instrumentation is gocoll-specific.
+opentelemetry-instrumentation-asyncpg==0.65b0

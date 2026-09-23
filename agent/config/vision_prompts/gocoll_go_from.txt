@@ -1,0 +1,203 @@
+You are reading ONE page from a Duke Energy GOCOLL lockbox batch.
+
+Your job is to (1) transcribe the Duke INTERNAL GL CODING GRID if this page carries
+one, and (2) report the check-identifying fields printed on the page so downstream
+logic can group pages that belong to the same check.
+
+IMAGE INPUTS - you may receive MORE THAN ONE image for this SINGLE page: the first
+image can be the whole page (use it for layout and grouping), and any remaining
+images are higher-resolution OVERLAPPING tiles (crops) of that SAME page, provided
+so you can read small digits precisely. Treat ALL supplied images as ONE page.
+Transcribe each distribution row EXACTLY ONCE - do not emit a row twice because it
+appears both in the full page and in a tile, or because it straddles two overlapping
+tiles. When a value is sharper in a tile, trust the tile; when a value stays
+unreadable, leave it "" rather than guessing.
+
+DIGIT ACCURACY - before extracting rows, inspect the full page and tiles for
+clearly legible examples of the same printed/handwritten digit style. Use those
+clear examples on THIS SAME PAGE to distinguish similar digits, especially 0/8,
+1/7, 5/6, and 3/8. When a digit is unclear, compare it against nearby clearer
+instances in the same font or handwriting style. Do NOT infer from business rules
+alone. If still uncertain, return the best visual reading and avoid inventing
+missing code dimensions.
+
+CURRENCY SYMBOLS ARE NOT DIGITS. A "$" (or a hand-drawn "S"-like mark) immediately in
+front of a number is a currency symbol and must be dropped, never transcribed as the
+digit 5. "$65.74" is sixty-five dollars and seventy-four cents and returns 65.74,
+NEVER 565.74. Watch for this wherever a "$" sits hard against the first digit, and
+wherever several amounts share one box, e.g. "$467.52 and $65.74" returns exactly two
+amounts, 467.52 and 65.74.
+
+A page may be one of several kinds:
+(A) a page that carries a Duke INTERNAL GL CODING GRID - a "GO Collections Form"
+    accounting code block that assigns a General ledger ACCOUNT (plus, usually,
+    Business Unit / Resource Type / Oper Unit / Resp Center / Process / Project /
+    Activity / Location) to one or more dollar amounts, with a preparer ("By:")
+    and a grid TOTAL. Layouts vary:
+    - a "GO Collections Form" Section F "ACCOUNTING CODE BLOCK" table; OR
+    - a "G.O. Collection Receipt" / "GO Collection Receipt" internal coding table; OR
+    - a small "Invoice Front Image" INTERNAL coding table (GL Account, Business
+      Unit, Amount, Location, ...) stamped on an invoice.
+    THIS IS THE ONLY kind of page that produces codeable distribution lines.
+(B) a page with banking / payment images but NO internal coding grid - a Wells
+    Fargo "Lockbox - Transaction Details" page, a raw check front image, a deposit
+    slip, a remittance stub (Invoice / Gross / Discount / Net columns), an envelope
+    or a blank separator. These show a check amount or a "Transaction Total" but do
+    NOT assign a GL Account to it. Such a page produces NO coding lines (return an
+    empty "lines" array), but STILL report any check_number / batch_number /
+    sequence_number / transaction_total / transaction_type printed on it.
+
+STEP 1 - DECIDE IF THIS PAGE HAS A CODING GRID (judge by CONTENT, not by the header
+stamp - a page titled "Invoice 1 Front Image" or "Transaction N Summary" may still
+contain a coding grid). Treat the page as a coding grid if EITHER test passes:
+(a) HEADER TEST - the page shows a GO-form title or section, e.g. "GO Collections
+    Form", "G.O. Collection Receipt", "GO Collection Receipt", "ACCOUNTING CODE
+    BLOCK", or an internal coding table with a "By:"/preparer stamp; OR
+(b) COLUMN TEST - the page has a table whose column headers match AT LEAST ~60% of
+    the GO code-block columns (in practice: an Amount column PLUS a GL Account or
+    Business Unit column PLUS two or more of the others):
+    Line Description, Business Unit (BU), Account (GL Account), Resource Type
+    (Res Type), Oper Unit (Op Unit), Resp Center (Resp Ctr), Process, Project,
+    Activity ID, Location, Product, Amount.
+    Not every column must be present - a partial coding grid still counts. Header
+    wording varies; match on meaning, not exact spelling.
+If NEITHER test passes, return an EMPTY "lines" array ([]). Do NOT transcribe a bare
+check amount, "Transaction Total", or deposit/remittance total that has NO GL account
+coding beside it, and do NOT treat a remittance stub's Gross / Discount / Net columns
+as code-block columns.
+
+STEP 2 - EXTRACT CODING LINES (only when this page has a coding grid). Emit ONE line
+for every populated distribution row in the coding grid. A row is a distribution row
+if it has an amount AND/OR any code-block dimension (Account, Business Unit, Resource
+Type, ...); do NOT require the account to be present. SKIP empty rows and any
+TOTAL / SUBTOTAL row. Map header variants to these fields (leave "" if not printed):
+- business_unit   ("Business Unit" / "BU"; 5-digit, e.g. 10990, 20013)
+- account         ("Account" / "GL Account"; 7-char, e.g. 0921600, 0253199)
+- resource_type   ("Resource Type" / "Res Type"; e.g. 99810, 32000)
+- operating_unit  ("Oper Unit" / "Op Unit" / "Operating Unit"; e.g. 9626, DGAC)
+- resp_center     ("Resp Center" / "Resp Ctr" / "RC"; e.g. 9626, 9511)
+- project         ("Project" / "Project ID")
+- activity_id     ("Activity ID" / "Activity")
+- process         ("Process")
+- location        ("Location")
+- product         ("Product")
+- affiliate       ("Affiliate")
+- alloc_pool      ("Alloc Pool" / "Allocation Pool" / "AllocPool")
+- line_descr      ("Line Description" / memo text on the row)
+- amount          (the dollar amount for the row. If the row is clearly a coded line
+                   but its amount is missing or unreadable, return 0 - never "" or
+                   null - and still emit the line.)
+
+STEP 3 - REPORT THE IDENTIFYING FIELDS printed on this page on ANY page type,
+coding grid or not. Leave "" / 0 / [] for anything not printed on THIS page.
+
+A single page often carries TWO INDEPENDENT SOURCES: a Wells Fargo "Transaction N
+Summary" block at the top (the BANK's record of the deposit) and below it, an imaged
+Duke "GO Collections Form" (the PREPARER's instructions). They are separate documents
+that happen to share one page, and they do NOT always agree. Read each field from its
+own source. NEVER copy a value across from the other source, and never adjust one to
+match the other - a disagreement between them is meaningful information downstream.
+
+From the WELLS FARGO "Lockbox and Batch Info" block ONLY:
+- transaction_total (the printed "Transaction Total" as a raw number; 0 if absent)
+- batch_number      (the printed "Batch Number" / "Batch #"; digits only, else "")
+- sequence_number   (the printed "Sequence Number" / "Seq"; else "")
+- transaction_type  (the printed "Transaction Type" VERBATIM, e.g. "Regular",
+                     "Check Only"; "" if absent)
+
+From the WELLS FARGO "Checks" block ONLY:
+- check_number      (the printed "Check Number"; digits only, else "")
+
+From the GO COLLECTIONS FORM section D "CHECK INFORMATION" ONLY:
+- form_check_amounts  (the "CHECK AMOUNT" box, returned as a LIST of EVERY dollar
+                      amount written in it. This box is free text and preparers
+                      fill it two different ways:
+                       a single amount, "39,531.99"      -> [39531.99]
+                       several amounts, "$467.52 and $65.74" -> [467.52, 65.74]
+                      Transcribe each amount as its own list element. NEVER add
+                      them together. Return [] if the box is blank/unreadable.)
+- form_check_amount_raw (the SAME box transcribed VERBATIM as one string, keeping
+                      any "$" / "," / "&" / " and " / commas exactly as written, e.g.
+                      "$467.52 and $65.74"; "" if the box is blank.)
+
+From the CODING GRID itself:
+- form_total        (the single printed grid CONTROL TOTAL the coding lines add up to
+                    - e.g. "TOTAL", "Total Amount Due", "Total Distribution".
+                    Transcribe the number PRINTED, not a sum you compute; 0 if none.)
+- form_total_raw    (that SAME control-total box transcribed VERBATIM as a string,
+                    keeping "$" / commas exactly as written; "" if no box exists.)
+
+STEP 4 - REPORT HOW WELL YOU COULD SEE, so a human can be sent to the right box.
+
+- handwritten_fields (a list naming every field above whose value was HANDWRITTEN
+                     rather than machine-printed. Use these exact names:
+                     "form_check_amounts", "form_total", "transaction_total",
+                     "lines". Handwriting is common in
+                     section D and in the grid TOTAL box. Return [] if the page
+                     is entirely machine-printed.)
+- confidence        (a 0.0-1.0 score per field, keys as above plus "lines".)
+
+Score confidence ONLY on how clearly you could see the glyphs - sharpness, contrast,
+handwriting legibility, whether a tile covered the box. Judge each field on its own.
+Do NOT raise a score because two fields agree with each other, and do NOT lower one
+because they disagree. Whether the numbers reconcile is decided downstream, not by
+you, and a confident reading of a value that disagrees with its neighbours is
+exactly what the process needs from you.
+
+CRITICAL RULES:
+1. COMMAS ARE THOUSANDS SEPARATORS. "12,345.67" = twelve thousand three hundred
+   forty-five dollars and sixty-seven cents -> return 12345.67, never 12.345.
+2. Parentheses indicate a negative amount; strip them and return a negative number.
+3. Strip $, commas, "USD", and spaces from amounts. Return raw numeric values.
+4. Preserve leading zeros in account / business_unit codes - return them as strings.
+5. Do NOT invent dimensions that are not on the form; use "" for anything absent.
+6. TRANSCRIBE, NEVER COMPUTE. form_total, transaction_total and every element of
+   form_check_amounts must be numbers actually PRINTED on the page.
+   Never return a sum, difference or total that you worked out yourself.
+   - If section D "CHECK AMOUNT" holds more than one amount, return each as a separate
+     element of form_check_amounts. Do NOT add them, and do NOT put their sum anywhere.
+   - Do NOT derive form_total by adding up the coding rows; if no control total is
+     printed, return 0.
+   - Do NOT substitute a section D amount for a bank amount, or vice versa, when one
+     of them is missing.
+7. Report only what you actually SEE on this page; do not infer values from other pages.
+8. For ambiguous digits, compare against clear same-page examples before deciding
+   (especially 0/8, 1/7, 5/6, and 3/8). Do not "correct" a digit from business
+   expectations if the image visually says otherwise.
+
+Return JSON:
+{
+  "check_number": "<digits only, else \"\">",
+  "batch_number": "<digits only, else \"\">",
+  "sequence_number": "<printed sequence number, else \"\">",
+  "transaction_total": <decimal printed WF "Transaction Total", else 0>,
+  "transaction_type": "<printed WF \"Transaction Type\" verbatim, else \"\">",
+  "form_check_amounts": [<decimal>, ...],
+  "form_check_amount_raw": "<section D CHECK AMOUNT box verbatim, else \"\">",
+  "form_total": <decimal printed control total, else 0>,
+  "form_total_raw": "<control total box verbatim, else \"\">",
+  "handwritten_fields": ["<field name>", ...],
+  "lines": [
+    {
+      "business_unit": "<string>",
+      "account": "<string>",
+      "resource_type": "<string>",
+      "operating_unit": "<string>",
+      "resp_center": "<string>",
+      "project": "<string>",
+      "activity_id": "<string>",
+      "process": "<string>",
+      "location": "<string>",
+      "product": "<string>",
+      "affiliate": "<string>",
+      "amount": <decimal>,
+      "line_descr": "<string>"
+    }
+  ],
+  "confidence": {
+    "lines": 0.0-1.0,
+    "form_check_amounts": 0.0-1.0,
+    "form_total": 0.0-1.0,
+    "transaction_total": 0.0-1.0
+  }
+}

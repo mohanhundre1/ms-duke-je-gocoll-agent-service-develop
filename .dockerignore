@@ -1,0 +1,78 @@
+# The image only needs requirements.txt, agent/src, agent/config,
+# orchestrator/src and serve.py. Everything else is excluded so the build
+# context stays small and no local secrets or virtualenvs are ever shipped.
+
+# Secrets / local config
+.env
+.env.*
+!.env.example
+
+# Virtualenvs (hundreds of MB - never part of the context)
+.venv/
+venv/
+
+# VCS / CI
+.git/
+.gitignore
+.github/
+
+# Python caches and build artifacts. Patterns need the `**/` prefix; a
+# .dockerignore pattern without a slash only matches at the context root.
+**/__pycache__
+**/*.py[cod]
+**/*.egg-info
+dist/
+build/
+.ruff_cache/
+.pytest_cache/
+.mypy_cache/
+
+# Tests, fixtures and coverage output
+tests/
+test_data/
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+
+# Local run scratch dirs
+uploads/
+vision_output/
+output/
+app_output/
+
+# Local dev overlays
+docker-compose*.yml
+
+# NOTE: ms-duke-je-common/ and Dockerfile.local are deliberately NOT ignored.
+# ../build-local.ps1 copies the local common checkout to ./ms-duke-je-common and
+# generates a Dockerfile.local that does `COPY ms-duke-je-common/ /tmp/...`, so
+# excluding either one breaks the offline/local build path. Neither exists in a
+# clean checkout (both are gitignored), so cloud builds are unaffected.
+
+# Docs and source material (large binaries; not needed at runtime)
+*.md
+*.docx
+*.pdf
+*.pptx
+*.xlsx
+
+# Ad-hoc local scripts / dumps kept at the repo root
+.run_*.py
+run_*.ps1
+serve_*_api.py
+text_*.py
+text_*.json
+test_*.py
+validate_*.py
+_reach.py
+*_results.json
+*.data.json
+*.txt
+!requirements.txt
+
+# Editor / OS cruft
+.idea/
+.vscode/
+*.swp
+.DS_Store

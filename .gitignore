@@ -1,0 +1,54 @@
+# Secrets — never commit
+.env
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+*.egg-info/
+
+# Virtual environments (never commit)
+.venv/
+venv/
+env/
+.deps-installed
+
+# Build output
+dist/
+build/
+
+# Editor
+.idea/
+.vscode/
+*.swp
+
+# macOS
+.DS_Store
+
+# Local Dockerfile overlay (per-developer; not for committing)
+Dockerfile.local
+
+# Local test/coverage artifacts
+coverage_focus_test_run_*.log
+coverage_focus_test_summary_*.md
+related_tests_consolidated_*.log
+integration_test_results.log
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+.ruff_cache/
+
+tests/golden/input/
+tests/golden/expected/
+
+# Local run scratch dirs (runtime output — never commit)
+uploads/
+vision_output/
+output/
+app_output/
+
+# Local development overlay (not for cloud build)
+Dockerfile.local2
+ms-duke-je-common/

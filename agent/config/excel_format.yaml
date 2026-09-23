@@ -1,0 +1,29 @@
+# GOCOLL JE - eFIS Sheet1 format constants
+#
+# Cash/control line + JE header code-block values the Engine-3 assembler
+# (src/assembly/gocoll_assembler.py) uses to render the eFIS Sheet1 rows.
+# Mirrors the ITFT charge_types.yaml pattern: the JE code-block constants
+# live in config rather than hardcoded in the assembler.
+#
+# Source: JAN 2026 GO Collections working file (Lockbox 604205).
+
+lockbox_number: "604205"
+
+# -- JE header (eFIS Sheet1 columns A-H) - repeated on every row --
+header:
+  business_unit: "10900"
+  journal_mask: "GOCOLL"
+  source: "999"
+  # Blank on the eFIS upload to match the posted JE (PeopleSoft applies ACTUALS).
+  ledger: ""
+  reversal_code: ""
+
+# -- Cash / control line (the "purple" deposit line, one per batch) --
+cash_line:
+  account: "0131356"
+  resource_type: "99810"
+  oper_unit: "9626"
+  resp_center: "9626"
+  business_unit: "10900"
+  # Sheet1 V (Line Descr) for the deposit line; ``{batch}`` = batch number.
+  descr_template: "Batch {batch}"

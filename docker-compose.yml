@@ -1,0 +1,51 @@
+name: ms-duke-je-gocoll-agent-service
+
+services:
+  gocoll-agent:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: duke-gocoll:latest
+    container_name: duke-gocoll
+    ports:
+      - "${GOCOLL_AGENT_PORT:-8018}:${GOCOLL_AGENT_PORT:-8018}"
+    env_file:
+      - .env
+    environment:
+      ROLE: "executor"
+      GOCOLL_AGENT_PORT: "${GOCOLL_AGENT_PORT:-8018}"
+      # Host advertised in the A2A agent cards - must be the DNS name siblings
+      # use to reach this container, not the bind address.
+      A2A_HOST: "${A2A_HOST:-duke-gocoll}"
+      # Downstream agents - override in .env for different topologies
+      GOCOLL_AGENT_URL: "${GOCOLL_AGENT_URL:-http://duke-gocoll:8018}"
+      ERP_TEMPLATE_AGENT_URL: "${ERP_TEMPLATE_AGENT_URL:-http://duke-shared-agents:8002}"
+      CALLBACK_BASE_URL: "${CALLBACK_BASE_URL:-http://duke-api:8090}"
+      # GenAI telemetry (opt-in; off by default). Set DUKE_GENAI_TELEMETRY=on in
+      # .env to enable gen_ai spans + tenant-dimensioned llm metrics in common.
+      DUKE_GENAI_TELEMETRY: "${DUKE_GENAI_TELEMETRY:-off}"
+      OTEL_SEMCONV_STABILITY_OPT_IN: "${OTEL_SEMCONV_STABILITY_OPT_IN:-}"
+    extra_hosts:
+      # Lets the container reach duke-api / duke-delegation when they run on the
+      # host rather than on duke-net (CALLBACK_BASE_URL / CONFIG_REGISTRY_URL
+      # pointing at host.docker.internal).
+      - "host.docker.internal:host-gateway"
+    networks:
+      # Default isolated network for this compose project
+      - default
+      # Shared network used by duke-api / duke-ui / sibling agents so they
+      # can reach this container by DNS name `duke-gocoll`. Declared as
+      # `external` below so this compose file does not own its lifecycle.
+      - duke-net
+    restart: unless-stopped
+    volumes:
+      # Keep generated workbook artifacts off the container layer.
+      - erp-output:/tmp/erp_output
+
+volumes:
+  erp-output:
+
+networks:
+  duke-net:
+    external: true
+    name: duke-full-stack_duke-net

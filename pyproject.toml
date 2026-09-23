@@ -1,0 +1,49 @@
+[project]
+name = "ms-duke-je-gocoll-agent-service"
+version = "0.1.12"
+description = "CORP GOCOLL Weekly JE A2A executor"
+requires-python = ">=3.13"
+
+[tool.pytest.ini_options]
+minversion = "8.0"
+testpaths = ["tests"]
+pythonpath = ["agent", "."]
+addopts = [
+    "-q",
+    "--strict-markers",
+    "--cov=agent/src",
+    "--cov-report=term-missing",
+    "--cov-report=xml",
+    # Ratchet: the ACS target is 80%. The gate is pinned at the current measured
+    # line rate so it can only move up - raise it with every coverage PR.
+    "--cov-fail-under=48",
+]
+markers = [
+    "integration: exercises the A2A surface end to end",
+    "security: negative/abuse-case test (path traversal, SSRF, prompt injection)",
+]
+
+[tool.coverage.run]
+branch = true
+source = ["agent/src"]
+omit = ["*/__main__.py", "*/tests/*"]
+
+[tool.coverage.report]
+skip_empty = true
+exclude_lines = [
+    "pragma: no cover",
+    "if TYPE_CHECKING:",
+    "raise NotImplementedError",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+
+[tool.ruff.lint]
+# Security rules are covered by bandit in CI; ruff stays on correctness/style.
+select = ["E", "F", "W", "I", "B", "UP"]
+ignore = ["E501", "B008"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["S101"]

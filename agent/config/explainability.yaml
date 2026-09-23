@@ -1,0 +1,113 @@
+# GOCOLL JE - Explanability Configuration
+#
+# IMPORTANT: app/config setting in gocoll_explainability.py overrides the
+# sections below at runtime. This file is the fallback defaults, so
+# description, purpose, interpretation, how_agent_uses, citations, heading,
+# and citations fields are deliberately written here in plain English
+# from the source (docx/markdown/CRP_GOCOLL/weekly_JE_SOP.md) and the rule pack
+# in src/comp/assemble/gates/gocoll_v1.yaml.
+#
+# This file is intentionally written in plain English and follows the
+# source docx/pdf/markdown/regression/duke/agent_config structure.
+# The bulleted run_flags are shown inline and explained by a client.
+report:
+  title: "GOCOLL JE - Explanability Report"
+  format: "application/markdown"
+  version: "1.0"
+  generated_by: "GOCOLL JE Agent"
+
+formatting:
+  locale: "en-US"
+  currency_symbol: "$"
+  negatives_style: "parentheses"
+  date_format: "MMM DD, YYYY"
+
+sections:
+  - id: "executive_summary"
+    order: 1
+    heading: "Executive Summary"
+    description: "Top-line outcome of this GO Collections journal entry."
+    purpose: "Show the reader the bottom line: in the journal, count, line count, the bridge from bank deposits to journal amounts, and the final status before drilling into the detail."
+    interpretation: "A journal that nets to $0.00 with deposited money fully journaled is ready to review. If money is shown as not journaled, or counts are listed as needing review, resolve those before approving."
+    how_agent_uses: "The agent derives every figure from the extracted batch transactions, the assembled journal, the Wells Fargo control totals, and the Treasury report. No figures are calculated."
+    citations:
+      - "Assembled eFIS Journal"
+    enabled: true
+
+  - id: "source_documents"
+    order: 2
+    heading: "Source Documents"
+    description: "Inventory of every file consumed in this run."
+    purpose: "Documents the audit trail from the original lockbox PDFs and control workbooks through the assembled journal entry."
+    interpretation: "If the source column lists multiple batch PDFs or control totals, all source containers were acquired. If batch PDFs are missing, the journal was not assembled."
+    how_agent_uses: "Files are classified by filename and workbook sheet content into batch PDFs, validation tab, Treasury report, and Wells Fargo Transaction Report before extraction starts. Batch PDFs are read by the extraction and classification sections."
+    enabled: true
+
+  - id: "extraction"
+    order: 3
+    heading: "Reading the Lockbox Deposits"
+    description: "How the raw batch PDFs became per-transaction units."
+    purpose: "Show extraction coverage: how each deposit was read, and any transaction flagged for human re-entry."
+    interpretation: "The GO Collection Form is a scanned image; the OCR text layer is not used for the code distribution, because the GO Collection Form scan is a scanned image. Where a GO form is supplied as a document."
+    how_agent_uses: "Every page is read with GPT vision; the OCR layer is not used. Evidence is captured per transaction."
+    citations:
+      - "GO Collection Form"
+    enabled: true
+
+  - id: "classification"
+    order: 4
+    heading: "Identifying the GL Coding"
+    description: "How each coded distribution was bucketed for posting."
+    purpose: "Explain which GL treatment each line received before the journal was assembled."
+    how_agent_uses: "Each line is posted verbatim from its GO Collection Form. Lines with no usable code are labled as such and left blank for analyst review. The agent never substitutes a fallback code block."
+    citations:
+      - "GO Collection Form code block"
+      - "GOCOLL codeblock classifier"
+    enabled: true
+
+  - id: "assembly"
+    order: 5
+    heading: "Building the Balanced Journal"
+    description: "How the balanced eFIS Journal was built per batch."
+    purpose: "Show the cash/control plus code/detail structure and the zero-balance proof."
+    interpretation: "Every batch must net to $0.00, and is must the whole Monetary Amount column. Balancing per batch rather than only in total means a coding error in one batch cannot be masked by another. Note: line amounts are forced negative and the cash/control line is computed as the negative sum of its batch's detail lines, so each batch nets to zero. No balancing plug is fabricated; a coded to"
+    how_agent_uses: "The agent assembles the journal internally consistent. Balancing per batch proves it."
+    citations:
+      - "Assembled eFIS Journal lines"
+    enabled: true
+
+  - id: "reconciliation"
+    order: 6
+    heading: "Tying the Journal to the Bank"
+    description: "Tie-out between coded journal amounts, Wells Fargo batch totals, and Treasury bank activity."
+    purpose: "Shows whether each batch ties to independent bank controls and whether any difference is explained by a Treasury return item."
+    interpretation: "The agent compares A = the coded journal amount, B = the Wells Fargo gross check total, and C = the Treasury BAI 111 lockbox deposit. BAI 566 return items can explain an A-versus-B difference, so an unexplained difference."
+    how_agent_uses: "For each batch the agent compares A = the coded journal amount, B = the Wells Fargo gross check total, and C = the Treasury BAI 111 lockbox deposit. BAI 566 return items can explain an A-versus-B difference, so an unexplained difference."
+    citations:
+      - "Wells Fargo Transaction Report"
+      - "Treasury Report BAI 111 lockbox deposits"
+      - "Treasury Report BAI 566 return items"
+    enabled: true
+
+  - id: "validation"
+    order: 7
+    heading: "Pre-Posting Review Checks"
+    description: "The automated rule pack checks run over the assembled journal."
+    purpose: "Separates the findings that stop the journal from the findings a reviewer must clear before posting."
+    interpretation: "Only the balance and per-batch control totals are hard gates; the coding quality checks are advisory by design, because GO Collections coding is formula-driven and needs a human decision."
+    how_agent_uses: "The GOCOLL rule pack runs balance and per-batch control totals as hard gates, then code-block completeness, validation tab, PeopleSoft derivation follow-up for values the validation tab."
+    citations:
+      - "GOCOLL validation rule pack"
+      - "Validation Tab master data"
+    enabled: true
+
+  - id: "next_steps"
+    order: 8
+    heading: "Next Steps"
+    description: "The SOP steps that follow this workbook."
+    purpose: "Sequence the findings so nothing is missed between generation and posting."
+    interpretation: "Work the run-specific items first - they need someone else's input and set the pace. The eFIS and PeopleSoft steps are the standard closure sequence."
+    how_agent_uses: "These steps are taken from the GO Collections SOP. The agent does not perform them; it reports which ones this run triggered."
+    citations:
+      - "GOCOLL Weekly JE SOP"
+    enabled: true
